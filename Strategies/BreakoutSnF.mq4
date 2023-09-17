@@ -58,7 +58,17 @@ input double InpRiskPercent=1.0;
 //| Global Variables                                |
 //+------------------------------------------------------------------+
 
+double RangeGap = 0;
+double StopLoss= 0;
+double TakeProfit1 = 0;
+double TakeProfit2 = 0;
+double TakeProfit3 = 0;
 double Risk = 0;
+
+datetime StartTime=0;
+datetime EndTime= 0;
+bool InRange = false;
+
 
 
 ;
@@ -126,6 +136,13 @@ if (InpRiskPercent <= 0 ){
 
 if (!inputsOK) return INIT_PARAMETERS_INCORRECT;
 
+// 1. find the setup for the starting time range 
+datetime now = TimeCurrent(); 
+
+EndTime= setNextTime(now+60, InpRangeEndHour, InpRangeEndMinute);
+StartTime = setPrevTime(EndTime, InpRangeStartHour, InpRangeStartMinute);
+InRange = (StartTime <= now && EndTime > now);
+
 
    return(INIT_SUCCEEDED);
   }
@@ -146,3 +163,49 @@ void OnTick()
    
   }
 //+------------------------------------------------------------------+
+datetime setNextTime(datetime now, int hour, int minute){
+    MqlDateTime nowStruct;
+    TimeToStruct(now, nowStruct);
+
+    nowStruct.sec = 0;
+    datetime nowTime = StructToTime(nowStruct);
+
+    nowStruct.hour = hour;
+    nowStruct.min = minute;
+    datetime nextTime = StructToTime(nowStruct);
+
+    while (nextTime < nowTime || !IsTradingDay(nextTime)){
+        nextTime +=86400;
+    }
+return nextTime;
+
+}
+
+
+datetime setPrevTime(datetime now, int hour, int minute){
+    MqlDateTime nowStruct;
+    TimeToStruct(now, nowStruct);
+
+    nowStruct.sec = 0;
+    datetime nowTime = StructToTime(nowStruct);
+
+    nowStruct.hour = hour;
+    nowStruct.min = minute;
+    datetime prevTime = StructToTime(nowStruct);
+
+    while (prevTime < nowTime || !IsTradingDay(prevTime)){
+        prevTime -=86400;
+    }
+return prevTime;
+
+}
+
+bool IsTradingDay( datetime time){
+    MqlDateTime timeStruct;
+    TimeToStruct(time, timeStruct);
+    datetime fromTime;
+    datetime toTime;
+    return SymbolInfoSessionTrade(Symbol(), (ENUM_DAY_OF_WEEK)timeStruct.day_of_week, 0, fromTime, toTime);
+
+
+}
