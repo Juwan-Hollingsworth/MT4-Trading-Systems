@@ -24,7 +24,7 @@
 
 
 
- |
+ 
 //+------------------------------------------------------------------+
 
 #property copyright "Copyright 2023, MetaQuotes Software Corp."
@@ -50,7 +50,7 @@ input double InpTakeProfit3Pips=50.0;
 
 // Stnd Features
 input long InpMagic= 232323; //Magic number
-input string InpTradeComment = "Breakout SnF" //Trade comment
+input string InpTradeComment = "Breakout SnF"; //Trade comment
 input double InpRiskPercent=1.0;
 
 
@@ -60,9 +60,26 @@ input double InpRiskPercent=1.0;
 //+------------------------------------------------------------------+
 int OnInit()
   {
-//---
-   
-//---
+// Validate range times
+if (InpRangeStartHour < 0 || InpRangeStartHour > 23){
+    Print("Start hour must be from 0-23");
+    return INIT_PARAMETERS_INCORRECT;
+}
+
+if (InpRangeStartMinute < 0 || InpRangeStartMinute > 59){
+    Print("Start hour must be from 0-59");
+    return INIT_PARAMETERS_INCORRECT;
+}
+
+if (InpRangeEndHour < 0 || InpRangeEndHour > 23){
+    Print("Start hour must be from 0-23");
+    return INIT_PARAMETERS_INCORRECT;
+}
+
+if (InpRangeEndMinute < 0 || InpRangeEndMinute > 59){
+    Print("Start hour must be from 0-59");
+    return INIT_PARAMETERS_INCORRECT;
+}
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
