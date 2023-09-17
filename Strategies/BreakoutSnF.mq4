@@ -54,32 +54,79 @@ input string InpTradeComment = "Breakout SnF"; //Trade comment
 input double InpRiskPercent=1.0;
 
 
+//+------------------------------------------------------------------+
+//| Global Variables                                |
+//+------------------------------------------------------------------+
+
+double Risk = 0;
+
+
 ;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 int OnInit()
   {
+    double Risk = InpRiskPercent/100;
+
+    Alert("RiskPercent = " + string(InpRiskPercent) + ", Risk = " +string(Risk));
+    bool inputsOK=true;
+    
 // Validate range times
 if (InpRangeStartHour < 0 || InpRangeStartHour > 23){
     Print("Start hour must be from 0-23");
-    return INIT_PARAMETERS_INCORRECT;
+    bool inputsOK=false;
+   
 }
 
 if (InpRangeStartMinute < 0 || InpRangeStartMinute > 59){
     Print("Start hour must be from 0-59");
-    return INIT_PARAMETERS_INCORRECT;
+    bool inputsOK=false;
 }
 
 if (InpRangeEndHour < 0 || InpRangeEndHour > 23){
     Print("Start hour must be from 0-23");
-    return INIT_PARAMETERS_INCORRECT;
+    bool inputsOK=false;
 }
 
 if (InpRangeEndMinute < 0 || InpRangeEndMinute > 59){
     Print("Start hour must be from 0-59");
-    return INIT_PARAMETERS_INCORRECT;
+    bool inputsOK=false;
 }
+
+if (InpRangeGapPips <= 0 ){
+    Print("range gap must be grater than 0");
+    bool inputsOK=false;
+}
+
+if (InpStopLossPips < 0 ){
+    Print("stop loss must be grater than 0");
+    bool inputsOK=false;
+}
+
+if (InpTakeProfit1Pips < 0 ){
+    Print("tp1 must be grater than 0");
+    bool inputsOK=false;
+}
+
+if (InpTakeProfit2Pips < 0 ){
+    Print("tp2 must be grater than 0");
+    bool inputsOK=false;
+}
+
+if (InpTakeProfit3Pips < 0 ){
+    Print("tp3 must be grater than 0");
+    bool inputsOK=false;
+}
+
+if (InpRiskPercent <= 0 ){
+    Print("risk must be greater than 0");
+    bool inputsOK=false;
+}
+
+if (!inputsOK) return INIT_PARAMETERS_INCORRECT;
+
+
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
