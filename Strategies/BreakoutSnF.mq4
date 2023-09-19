@@ -69,6 +69,9 @@ datetime StartTime=0;
 datetime EndTime= 0;
 bool InRange = false;
 
+double BuyEntryPrice = 0;
+double SellEntryPrice = 0;
+
 
 
 ;
@@ -142,6 +145,9 @@ TakeProfit1 = PipsToDouble(InpTakeProfit1Pips);
 TakeProfit2 = PipsToDouble(InpTakeProfit2Pips);
 TakeProfit3 = PipsToDouble(InpTakeProfit3Pips);
 
+double BuyEntryPrice = 0;
+double SellEntryPrice = 0;
+
 // 1. find the setup for the starting time range 
 datetime now = TimeCurrent(); 
 
@@ -166,6 +172,20 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //---
+datetime now = TimeCurrent(); //get curr server time
+bool currentlyInRange = (StartTime<= now && now <EndTime); // tells me if im currently inside the range
+
+if (InRange && !currentlyInRange) {
+    //perform exiting range
+    SetTradeEntries();
+}
+
+if (now>=EndTime){
+    EndTime = setNextTime(EndTime+60, InpRangeEndHour, InpRangeEndMinute);
+    StartTime= setPrevTime(EndTime, InpRangeStartHour, InpRangeStartMinute);
+}
+
+InRange = currentlyInRange;
    
   }
 //+------------------------------------------------------------------+
@@ -228,4 +248,20 @@ double PipsToDouble(string symbol, double pips){
     }
     double value = pips * SymbolInfoDouble(symbol, SYMBOL_POINT);
     return value;
+}
+
+void SetTradeEntries(){
+    //set buy and sell price 
+    
+//highest high price and lowest low price for the time range 
+    int startBar = iBarShift(Symbol(), PERIOD_M1, StartTime, false);
+    int endbar = iBarShift(Symbol(), PERIOD_M1, EndTime-60, false);
+    double high = iHigh(Symbol(), PERIOD_M1, iHighest(Symbol(),PERIOD_M1, MODE_HIGH, startBar-endbar+1, endbar));
+  double low = iLow(Symbol(), PERIOD_M1, iLowest(Symbol(),PERIOD_M1, MODE_LOW, startBar-endbar+1, endbar));
+  
+  //save th entry prices 
+  BuyEntryPrice = high + RangeGap; //7 pips above high price of the rnage
+   SellEntryPrice = low - RangeGap;
+  
+  
 }
