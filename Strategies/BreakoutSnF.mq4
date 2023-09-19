@@ -136,6 +136,12 @@ if (InpRiskPercent <= 0 ){
 
 if (!inputsOK) return INIT_PARAMETERS_INCORRECT;
 
+RangeGap = PipsToDouble(InpRangeGapPips);
+StopLoss = PipsToDouble(InpStopLossPips);
+TakeProfit1 = PipsToDouble(InpTakeProfit1Pips);
+TakeProfit2 = PipsToDouble(InpTakeProfit2Pips);
+TakeProfit3 = PipsToDouble(InpTakeProfit3Pips);
+
 // 1. find the setup for the starting time range 
 datetime now = TimeCurrent(); 
 
@@ -208,4 +214,18 @@ bool IsTradingDay( datetime time){
     return SymbolInfoSessionTrade(Symbol(), (ENUM_DAY_OF_WEEK)timeStruct.day_of_week, 0, fromTime, toTime);
 
 
+}
+
+double PipsToDouble(double pips){
+   return PipsToDouble(Symbol(), pips);
+}
+
+double PipsToDouble(string symbol, double pips){
+    //casting change (int) change return value to an int
+    int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+    if(digits ==3 || digits == 5){
+        pips =pips*10;
+    }
+    double value = pips * SymbolInfoDouble(symbol, SYMBOL_POINT);
+    return value;
 }
