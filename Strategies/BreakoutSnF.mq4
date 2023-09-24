@@ -22,6 +22,8 @@
 // Assumed using quitu risk
 // Cancel other sides of trades
 
+//Ctrader files: https://www.mql5.com/en/code/39161
+
 
 
  
@@ -31,6 +33,14 @@
 #property link      "https://www.mql5.com"
 #property version   "1.00"
 #property strict
+
+#include <Trade\OrderInfo.mqh>
+#include <Trade\PositionInfo.mqh>
+#include <Trade\SymbolInfo.mqh>
+#include <Trade\Trade.mqh>
+
+CTrade Trade;
+CPositionInfo PositionInfo;
 
 //+------------------------------------------------------------------+
 //| Inputs                                  |
@@ -148,6 +158,8 @@ TakeProfit3 = PipsToDouble(InpTakeProfit3Pips);
 double BuyEntryPrice = 0;
 double SellEntryPrice = 0;
 
+Trade.SetExpertMagicNumber(InpMagic);
+
 // 1. find the setup for the starting time range 
 datetime now = TimeCurrent(); 
 
@@ -186,6 +198,29 @@ if (now>=EndTime){
 }
 
 InRange = currentlyInRange;
+
+double currentPrice = 0;
+if (BuyEntryPrice>0){
+    currentPrice = SymbolInfoDouble(Symbol(), SYMBOL_ASK); //Current price is the entry price for a buy trade
+
+    if (currentPrice >=BuyEntryPrice){
+        OpenTrade(ORDER_TYPE_BUY, currentPrice);
+        BuyEntryPrice = 0;
+        SellEntryPrice = 0;
+    }
+
+}
+
+if (SellEntryPrice>0){
+    currentPrice = SymbolInfoDouble(Symbol(), SYMBOL_BID); //Current price is the entry price for a buy trade
+
+    if (currentPrice <=SellEntryPrice){
+        OpenTrade(ORDER_TYPE_SELL, currentPrice);
+        BuyEntryPrice = 0;
+        SellEntryPrice = 0;
+    }
+
+}
    
   }
 //+------------------------------------------------------------------+
@@ -252,16 +287,65 @@ double PipsToDouble(string symbol, double pips){
 
 void SetTradeEntries(){
     //set buy and sell price 
-    
 //highest high price and lowest low price for the time range 
     int startBar = iBarShift(Symbol(), PERIOD_M1, StartTime, false);
     int endbar = iBarShift(Symbol(), PERIOD_M1, EndTime-60, false);
     double high = iHigh(Symbol(), PERIOD_M1, iHighest(Symbol(),PERIOD_M1, MODE_HIGH, startBar-endbar+1, endbar));
-  double low = iLow(Symbol(), PERIOD_M1, iLowest(Symbol(),PERIOD_M1, MODE_LOW, startBar-endbar+1, endbar));
-  
+  double low = iLow(Symbol(), PERIOD_M1, iLowest(Symbol(),PERIOD_M1, MODE_LOW, startBar-endbar+1, endbar)); 
   //save th entry prices 
   BuyEntryPrice = high + RangeGap; //7 pips above high price of the rnage
    SellEntryPrice = low - RangeGap;
   
-  
+}
+
+void OpenTrade(ENUM_ORDER_TYPE type, double price){
+    double sl = 0;
+    if (type == ORDER_TYPE_BUY){
+        sl= price - StopLoss; //buy
+    }else {
+        sl = price + StopLoss //sell
+    };
+    //if i fail placing tp 1 then don't bother placing any other trade 
+    if(!OpenTrade(type, price, sl, TakeProfit1)) return;
+    if(!OpenTrade(type, price, sl, TakeProfit2));
+    if(!OpenTrade(type, price, sl, TakeProfit3));
+
+}
+
+bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit){
+
+    double tp = 0;
+
+    if (type== ORDER_TYPE_BUY){
+        tp=price + takeProfit; //buy
+    }else{
+        tp= price-takeProfit; //sell
+    }
+
+    int digits  = (int) SymbolInfoInteger(Symbol(),SYMBOL_DIGITS);
+    price = NormalizeDouble(price, digits);
+
+    sl= NormalizeDouble(sl,digits);
+    tp= NormalizeDouble(tp, digits);
+
+    double volume = 0.01;
+
+    //Placing a trade MT4
+    //trade
+    //positioninfo
+
+   if (!Trade.PositionOpen(Symbol(), type, volume, price, sl, tp, InpTradeComment )){
+    PrintFormat("Error opening trade, type=%s, volume=%f, price=%f, sl=%f, tp=%f", EnumToString(type), volume, price, sl, tp);
+
+    return false;
+   };
+
+   return true;
+
+
+
+
+
+
+
 }
