@@ -287,7 +287,7 @@ double PipsToDouble(string symbol, double pips){
 
 void SetTradeEntries(){
     //set buy and sell price 
-//highest high price and lowest low price for the time range 
+    //highest high price and lowest low price for the time range 
     int startBar = iBarShift(Symbol(), PERIOD_M1, StartTime, false);
     int endbar = iBarShift(Symbol(), PERIOD_M1, EndTime-60, false);
     double high = iHigh(Symbol(), PERIOD_M1, iHighest(Symbol(),PERIOD_M1, MODE_HIGH, startBar-endbar+1, endbar));
@@ -298,12 +298,13 @@ void SetTradeEntries(){
   
 }
 
+
 void OpenTrade(ENUM_ORDER_TYPE type, double price){
     double sl = 0;
     if (type == ORDER_TYPE_BUY){
         sl= price - StopLoss; //buy
     }else {
-        sl = price + StopLoss //sell
+        sl = price + StopLoss; //sell
     };
     //if i fail placing tp 1 then don't bother placing any other trade 
     if(!OpenTrade(type, price, sl, TakeProfit1)) return;
@@ -341,11 +342,5 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
    };
 
    return true;
-
-
-
-
-
-
 
 }
