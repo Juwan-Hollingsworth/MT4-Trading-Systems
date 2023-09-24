@@ -2,31 +2,18 @@
 //|                                                  BreakoutSnF.mq4 |
 //|                        Copyright 2023, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com
-
-
-
-
-
-
-
-// TF: USDJPY
-
-// Find a 24 hour high and low rnage beased on 6pmEST
-// Entries are at 7 pips above and leow the rnage
-// 3 entries above and 3 entries below
-// Ea entry has a SL of 25 pips
-// Tp = 15,35,50pips
-
-// Risk 1% per position - will be based on SL
-// roral 3% risk per day
-// Assumed using quitu risk
-// Cancel other sides of trades
-
-//Ctrader files: https://www.mql5.com/en/code/39161
-
-
-
- 
+//|
+//|   Trading Strategy:
+//|   This Expert Advisor (EA) is designed to trade the USDJPY currency pair.
+//|   It follows a breakout strategy based on a 24-hour range starting at 6 PM EST.
+//|   The EA enters trades 7 pips above and below the range, with 3 buy entries and
+//|   3 sell entries. Each entry has a stop loss of 25 pips and take profits at
+//|   15, 35, and 50 pips.
+//|   Risk management aims for 1% risk per position based on stop loss, with a
+//|   maximum of 3% total risk per day. The EA cancels the other side of the trade
+//|   when one side is triggered.
+//|
+//|   MT4/MT5 CTrader files: https://www.mql5.com/en/code/39161
 //+------------------------------------------------------------------+
 
 #property copyright "Copyright 2023, MetaQuotes Software Corp."
@@ -51,16 +38,16 @@ input int InpRangeEndHour = 1; // Range End Hour
 input int InpRangeEndMinute = 0; // Range End Minute
 
 //Entry Inputs
-input double InpRangeGapPips=7.0;
-input double InpStopLossPips=25.0;
-input double InpTakeProfit1Pips=15.0;
-input double InpTakeProfit2Pips=35.0;
-input double InpTakeProfit3Pips=50.0;
+input double InpRangeGapPips = 7.0;       // Entry gap in pips
+input double InpStopLossPips = 25.0;      // Stop loss in pips
+input double InpTakeProfit1Pips = 15.0;   // Take profit 1 in pips
+input double InpTakeProfit2Pips = 35.0;   // Take profit 2 in pips
+input double InpTakeProfit3Pips = 50.0;   // Take profit 3 in pips
 
-// Stnd Features
+// Standard Features
 input long InpMagic= 232323; //Magic number
-input string InpTradeComment = "Breakout SnF"; //Trade comment
-input double InpRiskPercent=1.0;
+input string InpTradeComment = "Breakout Snf Strategy"; //Trade comment
+input double InpRiskPercent=1.0; //Risk Percentage per position
 
 
 //+------------------------------------------------------------------+
@@ -89,10 +76,7 @@ double SellEntryPrice = 0;
 //+------------------------------------------------------------------+
 int OnInit()
   {
-    // Risk = InpRiskPercent/100;
-
-    // Alert("RiskPercent = " + string(InpRiskPercent) + ", Risk = " +string(Risk));
-    
+    //initialize risk settings and validate inputs. 
     bool inputsOK=true;
     
 // Validate range times
@@ -149,8 +133,8 @@ if (InpRiskPercent <= 0 ){
 
 if (!inputsOK) return INIT_PARAMETERS_INCORRECT;
 
- Risk           = InpRiskPercent / 100;
-
+//Calc risk settings & intialize other vairables.
+Risk           = InpRiskPercent / 100;
 RangeGap = PipsToDouble(InpRangeGapPips);
 StopLoss = PipsToDouble(InpStopLossPips);
 TakeProfit1 = PipsToDouble(InpTakeProfit1Pips);
@@ -164,7 +148,7 @@ SellEntryPrice = 0;
 Trade.SetExpertMagicNumber(InpMagic);
 #endif
 
-// 1. find the setup for the starting time range 
+// Find the setup for the starting time range 
 datetime now = TimeCurrent(); 
 EndTime= setNextTime(now+60, InpRangeEndHour, InpRangeEndMinute);
 StartTime = setPrevTime(EndTime, InpRangeStartHour, InpRangeStartMinute);
@@ -183,9 +167,10 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
   {
-//---
-datetime now = TimeCurrent(); //get curr server time
-bool currentlyInRange = (StartTime<= now && now < EndTime); // tells me if im currently inside the range
+// Main trading logic that executes on every tick.
+
+datetime now = TimeCurrent(); //get current server time
+bool currentlyInRange = (StartTime<= now && now < EndTime); // check if currently inside the range
 
 if (InRange && !currentlyInRange) {
     //perform exiting range
@@ -193,6 +178,7 @@ if (InRange && !currentlyInRange) {
 }
 
 if (now >= EndTime){
+    //Move to the next time range
     EndTime = setNextTime(EndTime+60, InpRangeEndHour, InpRangeEndMinute);
     StartTime= setPrevTime(EndTime, InpRangeStartHour, InpRangeStartMinute);
 }
@@ -201,9 +187,11 @@ InRange = currentlyInRange;
 
 double currentPrice = 0;
 if (BuyEntryPrice>0){
+    //Calculate the current price for buy entry 
     currentPrice = SymbolInfoDouble(Symbol(), SYMBOL_ASK); //Current price is the entry price for a buy trade
 
     if (currentPrice >=BuyEntryPrice){
+        //Open a buy trade when the price is above or equal to the entry price. 
         OpenTrade(ORDER_TYPE_BUY, currentPrice);
         BuyEntryPrice = 0;
         SellEntryPrice = 0;
@@ -212,9 +200,11 @@ if (BuyEntryPrice>0){
 }
 
 if (SellEntryPrice > 0){
+    //Calculate the current price for sell entry. 
     currentPrice = SymbolInfoDouble(Symbol(), SYMBOL_BID); //Current price is the entry price for a buy trade
 
     if (currentPrice <= SellEntryPrice){
+        //Oopen a sell trade when the price is below or equal to the entry price.
         OpenTrade(ORDER_TYPE_SELL, currentPrice);
         BuyEntryPrice = 0;
         SellEntryPrice = 0;
@@ -225,6 +215,7 @@ if (SellEntryPrice > 0){
   }
 //+------------------------------------------------------------------+
 datetime setNextTime(datetime now, int hour, int minute){
+    //Calculate the next time based on the current time, hour, minute.
     MqlDateTime nowStruct;
     TimeToStruct(now, nowStruct);
 
@@ -244,6 +235,7 @@ return nextTime;
 
 
 datetime setPrevTime(datetime now, int hour, int minute){
+    //Calculate the previous time based on the current time, hour, minute.
     MqlDateTime nowStruct;
     TimeToStruct(now, nowStruct);
 
@@ -262,6 +254,8 @@ return prevTime;
 }
 
 bool IsTradingDay( datetime time){
+
+    //Check if the given time falls within a trading day.
     MqlDateTime timeStruct;
     TimeToStruct(time, timeStruct);
     datetime fromTime;
@@ -272,11 +266,13 @@ bool IsTradingDay( datetime time){
 }
 
 double PipsToDouble(double pips){
+
+    //Convert pips to a double value based on the symbol's point value.
    return PipsToDouble(Symbol(), pips);
 }
 
 double PipsToDouble(string symbol, double pips){
-    //casting change (int) change return value to an int
+ // Convert pips to a double value based on the symbol's point value.
     int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
     if(digits ==3 || digits == 5){
         pips =pips*10;
@@ -286,13 +282,12 @@ double PipsToDouble(string symbol, double pips){
 }
 
 void SetTradeEntries(){
-    //set buy and sell price 
-    //highest high price and lowest low price for the time range 
+  // Set buy and sell entry prices based on the highest high and lowest low within the time range.
     int startBar = iBarShift(Symbol(), PERIOD_M1, StartTime, false);
     int endBar = iBarShift(Symbol(), PERIOD_M1, EndTime-60, false);
     double high = iHigh(Symbol(), PERIOD_M1, iHighest(Symbol(),PERIOD_M1, MODE_HIGH, startBar-endBar+1, endBar));
   double low = iLow(Symbol(), PERIOD_M1, iLowest(Symbol(),PERIOD_M1, MODE_LOW, startBar-endBar+1, endBar)); 
-  //save th entry prices 
+  //Save the entry prices.
   BuyEntryPrice = high + RangeGap; //7 pips above high price of the rnage
   SellEntryPrice = low - RangeGap;
   
@@ -300,13 +295,14 @@ void SetTradeEntries(){
 
 
 void OpenTrade(ENUM_ORDER_TYPE type, double price){
+    // Open a trade with the specified type, price, stop loss, and take profit levels.
     double sl = 0;
     if (type == ORDER_TYPE_BUY){
         sl= price - StopLoss; //buy
     }else {
         sl = price + StopLoss; //sell
     };
-    //if i fail placing tp 1 then don't bother placing any other trade 
+     // If opening TP1 fails, do not attempt to place other trades. 
     if(!OpenTrade(type, price, sl, TakeProfit1)) return;
     if(!OpenTrade(type, price, sl, TakeProfit2))return;
     if(!OpenTrade(type, price, sl, TakeProfit3)) return;
@@ -317,6 +313,7 @@ void OpenTrade(ENUM_ORDER_TYPE type, double price){
 
 
 bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit){
+    // Open a trade with the specified type, price, stop loss, and take profit levels.
     if (takeProfit == 0) return true;
 
 
@@ -334,12 +331,10 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
     sl= NormalizeDouble(sl,digits);
     tp= NormalizeDouble(tp, digits);
 
-    //
+     // Calculate trade volume based on risk.
     double volume = GetRiskVolume(Risk, MathAbs(price-sl));
 
-    //Placing a trade MT4
-    //trade
-    //positioninfo
+    //Place a trade MT4
     #ifdef __MQL4__
     int ticket = OrderSend(Symbol(), type, volume, price, 0, sl, tp, InpTradeComment, (int)InpMagic);
     //if order send fails ticket will = 0
@@ -348,7 +343,7 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
          return false;
     }
     #endif
-
+ // Place a trade in MT5.
     #ifdef __MQL5__
    if (!Trade.PositionOpen(Symbol(), type, volume, price, sl, tp, InpTradeComment )){
     PrintFormat("Error opening trade, type=%s, volume=%f, price=%f, sl=%f, tp=%f", EnumToString(type), volume, price, sl, tp);
@@ -361,6 +356,8 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
 }
 
 double GetRiskVolume(double risk, double loss){
+
+    // Calculate trade volume based on equity and risk percentage.
 
     double equity = AccountInfoDouble(ACCOUNT_EQUITY); //calc equity
     double riskAmount = equity*risk; //amount i want to risk 
@@ -377,6 +374,8 @@ double GetRiskVolume(double risk, double loss){
 }
 
 double NormalizeVolume(double volume){
+
+     // Normalize the trade volume to match symbol constraints.
     if (volume <= 0) return 0; // nothing to do here
     double max = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX); //max # of lots allowed to trade
     double min = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN); //min # of lots allowed to trade
