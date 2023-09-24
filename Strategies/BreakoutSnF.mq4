@@ -308,12 +308,17 @@ void OpenTrade(ENUM_ORDER_TYPE type, double price){
     };
     //if i fail placing tp 1 then don't bother placing any other trade 
     if(!OpenTrade(type, price, sl, TakeProfit1)) return;
-    if(!OpenTrade(type, price, sl, TakeProfit2));
-    if(!OpenTrade(type, price, sl, TakeProfit3));
+    if(!OpenTrade(type, price, sl, TakeProfit2))return;
+    if(!OpenTrade(type, price, sl, TakeProfit3)) return;
 
 }
 
+//set trade size based on equity or risk
+
+
 bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit){
+    if (takeProfit == 0) return true;
+
 
     double tp = 0;
 
@@ -329,18 +334,57 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
     sl= NormalizeDouble(sl,digits);
     tp= NormalizeDouble(tp, digits);
 
-    double volume = 0.01;
+    //
+    double volume = GetRiskVolume(Risk, MathAbs(price-sl));
 
     //Placing a trade MT4
     //trade
     //positioninfo
 
-   if (!Trade.PositionOpen(Symbol(), type, volume, price, sl, tp, InpTradeComment )){
-    PrintFormat("Error opening trade, type=%s, volume=%f, price=%f, sl=%f, tp=%f", EnumToString(type), volume, price, sl, tp);
+    int ticket = OrderSend(Symbol(), type, volume, price, 0, sl, tp, InpTradeComment, (int)InpMagic);
+    //if order send fails ticket will = 0
+    if (ticket == 0){
+         PrintFormat("Error opening trade, type=%s, volume=%f, price=%f, sl=%f, tp=%f", EnumToString(type), volume, price, sl, tp);
+         return false;
+    }
 
-    return false;
-   };
+//    if (!Trade.PositionOpen(Symbol(), type, volume, price, sl, tp, InpTradeComment )){
+//     PrintFormat("Error opening trade, type=%s, volume=%f, price=%f, sl=%f, tp=%f", EnumToString(type), volume, price, sl, tp);
+
+//     return false;
+//    };
 
    return true;
 
 }
+
+double GetRiskVolume(double risk, double loss){
+
+    double equity = AccountInfoDouble(ACCOUNT_EQUITY); //calc equity
+    double riskAmount = risk*equity; //amount i want to risk 
+
+    double tickValue = SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_VALUE); //smallest movement price can have 
+    double tickSize = SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_SIZE);
+    double lossTicks= loss/ tickSize; // calc # of ticks I am prepared to lose
+
+    double volume = riskAmount / (lossTicks*tickValue); // tot. loss of a single lot size
+    volume = NormalizeVolume(volume);
+
+    return volume;
+
+}
+
+double NormalizeVolume(double volume){
+    if (volume == 0) return 0; // nothing to do here
+    double max = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX); //max # of lots allowed to trade
+    double min = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN); //min # of lots allowed to trade
+    double step = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_STEP); //increment between lot sizes
+
+    double result = MathRound(volume/step)*step; //round volume to nearest int value -> rounding volume based on the result of the step
+    if (result>max) result = max;
+    if (result<min) result = min; // might want to change to 0 later on 
+
+    return result; 
+}
+
+
