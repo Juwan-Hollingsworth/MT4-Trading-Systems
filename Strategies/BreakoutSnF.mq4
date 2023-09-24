@@ -34,13 +34,12 @@
 #property version   "1.00"
 #property strict
 
-#include <Trade\OrderInfo.mqh>
+#ifdef __MQL5__
 #include <Trade\PositionInfo.mqh>
-#include <Trade\SymbolInfo.mqh>
 #include <Trade\Trade.mqh>
-
 CTrade Trade;
 CPositionInfo PositionInfo;
+#endif
 
 //+------------------------------------------------------------------+
 //| Inputs                                  |
@@ -90,64 +89,67 @@ double SellEntryPrice = 0;
 //+------------------------------------------------------------------+
 int OnInit()
   {
-    double Risk = InpRiskPercent/100;
+    // Risk = InpRiskPercent/100;
 
-    Alert("RiskPercent = " + string(InpRiskPercent) + ", Risk = " +string(Risk));
+    // Alert("RiskPercent = " + string(InpRiskPercent) + ", Risk = " +string(Risk));
+    
     bool inputsOK=true;
     
 // Validate range times
 if (InpRangeStartHour < 0 || InpRangeStartHour > 23){
-    Print("Start hour must be from 0-23");
-    bool inputsOK=false;
+    Alert("Start hour must be from 0-23");
+     inputsOK=false;
    
 }
 
 if (InpRangeStartMinute < 0 || InpRangeStartMinute > 59){
-    Print("Start hour must be from 0-59");
-    bool inputsOK=false;
+    Alert("Start hour must be from 0-59");
+     inputsOK=false;
 }
 
 if (InpRangeEndHour < 0 || InpRangeEndHour > 23){
-    Print("Start hour must be from 0-23");
-    bool inputsOK=false;
+    Alert("Start hour must be from 0-23");
+     inputsOK=false;
 }
 
 if (InpRangeEndMinute < 0 || InpRangeEndMinute > 59){
-    Print("Start hour must be from 0-59");
-    bool inputsOK=false;
+    Alert("Start hour must be from 0-59");
+     inputsOK=false;
 }
 
 if (InpRangeGapPips <= 0 ){
-    Print("range gap must be grater than 0");
-    bool inputsOK=false;
+    Alert("range gap must be grater than 0");
+     inputsOK=false;
 }
 
 if (InpStopLossPips < 0 ){
-    Print("stop loss must be grater than 0");
-    bool inputsOK=false;
+    Alert("stop loss must be grater than 0");
+     inputsOK=false;
 }
 
 if (InpTakeProfit1Pips < 0 ){
-    Print("tp1 must be grater than 0");
-    bool inputsOK=false;
+    Alert("tp1 must be grater than 0");
+     inputsOK=false;
 }
 
 if (InpTakeProfit2Pips < 0 ){
-    Print("tp2 must be grater than 0");
-    bool inputsOK=false;
+    Alert("tp2 must be grater than 0");
+     inputsOK=false;
 }
 
 if (InpTakeProfit3Pips < 0 ){
-    Print("tp3 must be grater than 0");
-    bool inputsOK=false;
+    Alert("tp3 must be grater than 0");
+     inputsOK=false;
 }
 
 if (InpRiskPercent <= 0 ){
-    Print("risk must be greater than 0");
-    bool inputsOK=false;
+    Alert("risk must be greater than 0");
+     inputsOK=false;
 }
 
 if (!inputsOK) return INIT_PARAMETERS_INCORRECT;
+
+ Risk           = InpRiskPercent / 100;
 
 RangeGap = PipsToDouble(InpRangeGapPips);
 StopLoss = PipsToDouble(InpStopLossPips);
@@ -155,14 +157,15 @@ TakeProfit1 = PipsToDouble(InpTakeProfit1Pips);
 TakeProfit2 = PipsToDouble(InpTakeProfit2Pips);
 TakeProfit3 = PipsToDouble(InpTakeProfit3Pips);
 
-double BuyEntryPrice = 0;
-double SellEntryPrice = 0;
+BuyEntryPrice = 0;
+SellEntryPrice = 0;
 
+#ifdef __MQL5__
 Trade.SetExpertMagicNumber(InpMagic);
+#endif
 
 // 1. find the setup for the starting time range 
 datetime now = TimeCurrent(); 
-
 EndTime= setNextTime(now+60, InpRangeEndHour, InpRangeEndMinute);
 StartTime = setPrevTime(EndTime, InpRangeStartHour, InpRangeStartMinute);
 InRange = (StartTime <= now && EndTime > now);
@@ -174,10 +177,7 @@ InRange = (StartTime <= now && EndTime > now);
 //| Expert deinitialization function                                 |
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
-  {
-//---
-   
-  }
+  {}
 //+------------------------------------------------------------------+
 //| Expert tick function                                             |
 //+------------------------------------------------------------------+
@@ -185,14 +185,14 @@ void OnTick()
   {
 //---
 datetime now = TimeCurrent(); //get curr server time
-bool currentlyInRange = (StartTime<= now && now <EndTime); // tells me if im currently inside the range
+bool currentlyInRange = (StartTime<= now && now < EndTime); // tells me if im currently inside the range
 
 if (InRange && !currentlyInRange) {
     //perform exiting range
     SetTradeEntries();
 }
 
-if (now>=EndTime){
+if (now >= EndTime){
     EndTime = setNextTime(EndTime+60, InpRangeEndHour, InpRangeEndMinute);
     StartTime= setPrevTime(EndTime, InpRangeStartHour, InpRangeStartMinute);
 }
@@ -211,10 +211,10 @@ if (BuyEntryPrice>0){
 
 }
 
-if (SellEntryPrice>0){
+if (SellEntryPrice > 0){
     currentPrice = SymbolInfoDouble(Symbol(), SYMBOL_BID); //Current price is the entry price for a buy trade
 
-    if (currentPrice <=SellEntryPrice){
+    if (currentPrice <= SellEntryPrice){
         OpenTrade(ORDER_TYPE_SELL, currentPrice);
         BuyEntryPrice = 0;
         SellEntryPrice = 0;
@@ -254,8 +254,8 @@ datetime setPrevTime(datetime now, int hour, int minute){
     nowStruct.min = minute;
     datetime prevTime = StructToTime(nowStruct);
 
-    while (prevTime < nowTime || !IsTradingDay(prevTime)){
-        prevTime -=86400;
+    while (prevTime >= nowTime || !IsTradingDay(prevTime)){
+        prevTime -= 86400;
     }
 return prevTime;
 
@@ -289,12 +289,12 @@ void SetTradeEntries(){
     //set buy and sell price 
     //highest high price and lowest low price for the time range 
     int startBar = iBarShift(Symbol(), PERIOD_M1, StartTime, false);
-    int endbar = iBarShift(Symbol(), PERIOD_M1, EndTime-60, false);
-    double high = iHigh(Symbol(), PERIOD_M1, iHighest(Symbol(),PERIOD_M1, MODE_HIGH, startBar-endbar+1, endbar));
-  double low = iLow(Symbol(), PERIOD_M1, iLowest(Symbol(),PERIOD_M1, MODE_LOW, startBar-endbar+1, endbar)); 
+    int endBar = iBarShift(Symbol(), PERIOD_M1, EndTime-60, false);
+    double high = iHigh(Symbol(), PERIOD_M1, iHighest(Symbol(),PERIOD_M1, MODE_HIGH, startBar-endBar+1, endBar));
+  double low = iLow(Symbol(), PERIOD_M1, iLowest(Symbol(),PERIOD_M1, MODE_LOW, startBar-endBar+1, endBar)); 
   //save th entry prices 
   BuyEntryPrice = high + RangeGap; //7 pips above high price of the rnage
-   SellEntryPrice = low - RangeGap;
+  SellEntryPrice = low - RangeGap;
   
 }
 
@@ -328,7 +328,7 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
         tp= price-takeProfit; //sell
     }
 
-    int digits  = (int) SymbolInfoInteger(Symbol(),SYMBOL_DIGITS);
+    int digits  = (int)SymbolInfoInteger(Symbol(),SYMBOL_DIGITS);
     price = NormalizeDouble(price, digits);
 
     sl= NormalizeDouble(sl,digits);
@@ -340,19 +340,21 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
     //Placing a trade MT4
     //trade
     //positioninfo
-
+    #ifdef __MQL4__
     int ticket = OrderSend(Symbol(), type, volume, price, 0, sl, tp, InpTradeComment, (int)InpMagic);
     //if order send fails ticket will = 0
-    if (ticket == 0){
+    if (ticket <= 0){
          PrintFormat("Error opening trade, type=%s, volume=%f, price=%f, sl=%f, tp=%f", EnumToString(type), volume, price, sl, tp);
          return false;
     }
+    #endif
 
-//    if (!Trade.PositionOpen(Symbol(), type, volume, price, sl, tp, InpTradeComment )){
-//     PrintFormat("Error opening trade, type=%s, volume=%f, price=%f, sl=%f, tp=%f", EnumToString(type), volume, price, sl, tp);
-
-//     return false;
-//    };
+    #ifdef __MQL5__
+   if (!Trade.PositionOpen(Symbol(), type, volume, price, sl, tp, InpTradeComment )){
+    PrintFormat("Error opening trade, type=%s, volume=%f, price=%f, sl=%f, tp=%f", EnumToString(type), volume, price, sl, tp);
+    return false;
+   };
+   #endif
 
    return true;
 
@@ -361,7 +363,7 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
 double GetRiskVolume(double risk, double loss){
 
     double equity = AccountInfoDouble(ACCOUNT_EQUITY); //calc equity
-    double riskAmount = risk*equity; //amount i want to risk 
+    double riskAmount = equity*risk; //amount i want to risk 
 
     double tickValue = SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_VALUE); //smallest movement price can have 
     double tickSize = SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_SIZE);
@@ -375,7 +377,7 @@ double GetRiskVolume(double risk, double loss){
 }
 
 double NormalizeVolume(double volume){
-    if (volume == 0) return 0; // nothing to do here
+    if (volume <= 0) return 0; // nothing to do here
     double max = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX); //max # of lots allowed to trade
     double min = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN); //min # of lots allowed to trade
     double step = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_STEP); //increment between lot sizes
