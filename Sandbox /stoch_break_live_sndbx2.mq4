@@ -60,6 +60,12 @@ string msg = "";
 double lastSentEntryPrice = 0.0;
 
 
+int TradeCounter = 0;
+double TradePrices[3];
+double TakeProfits[3];
+double TradeStops[3];
+
+
 
 int OnInit()
   {
@@ -520,6 +526,18 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
          PrintFormat("Error opening trade, type=%s, volume=%f, price=%f, sl=%f, tp=%f", EnumToString(type), volume, price, sl, tp);
          return false;
     }
+    
+    // Increment the trade counter and store trade details
+    TradeCounter++;
+    TradePrices[TradeCounter - 1] = price;
+    TakeProfits[TradeCounter - 1] = price+takeProfit;
+    TradeStops[TradeCounter - 1] = sl;
+    
+    // Check if the counter has reached 3, and if so, send a Telegram message
+    if (TradeCounter == 3) {
+        SendTradeDetailsToTelegram();
+    }
+    
     #endif
  // Place a trade in MT5.
     #ifdef __MQL5__
@@ -530,21 +548,56 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
    #endif
 
 
-    if (price != lastSentEntryPrice) {
-        lastSentEntryPrice = price;
-    // Send Telegram message with trade details
-    double equity = AccountInfoDouble(ACCOUNT_EQUITY);
-    string tradeType = (type == ORDER_TYPE_BUY) ? "Buy" : "Sell";
-    string message = tradeType + " order executed @ " + DoubleToStr(price, digits) +
-                     "\nStop Loss: " + DoubleToStr(sl, digits) +
-                     "\nTake Profit: " + DoubleToStr(tp, digits)+
-                     "\nEquity " + DoubleToStr(equity, digits);
-    SendTelegramMessage(TelegramApiUrl, TelegramBotToken, ChatId, message + "\n" + TimeToString( TimeLocal() ));
-    }
-
    return true;
 
 }
+
+void SendTradeDetailsToTelegram() {
+    string message = "Alert! Trade Placed:\n";
+    double lastPrice = 0; // Variable to track the last price
+    string tradeType = ""; // Variable to track the trade type
+    double stopLossValue = 0; // Variable to track the stop loss value
+
+    for (int i = 0; i < 3; i++) {
+        double price = TradePrices[i];
+        double takeProfit = TakeProfits[i];
+        double stopLoss = TradeStops[i];
+
+        // Check if the current price is the same as the last one
+        if (price != lastPrice) {
+            // If trade type is not empty, add it to the message
+            if (StringLen(tradeType) > 0) {
+                message += tradeType + "Stop Loss: " + DoubleToStr(stopLossValue, 2) + "\n";
+                tradeType = "";
+                stopLossValue = 0;
+            }
+            message +=  "Executed @ Price: " + DoubleToStr(price, 2) + "\n";
+            lastPrice = price; // Update the last price
+        }
+
+        // Set trade type and stop loss only once
+        if (StringLen(tradeType) == 0) {
+            tradeType = (price > 0) ? "Buy" : "Sell";
+            stopLossValue = stopLoss;
+        }
+
+        message += "Take Profit" + IntegerToString(i + 1) + ": " + DoubleToStr(takeProfit, 2) + "\n";
+    }
+
+    // Check if there are trade details remaining to be added
+    if (StringLen(tradeType) > 0) {
+        message += "Order Type: "+ tradeType + "\n" +"Stop Loss: " + DoubleToStr(stopLossValue, 2) + "\n";
+    }
+
+    // Reset the counter and clear the trade details
+    TradeCounter = 0;
+    ArrayInitialize(TradePrices, 0);
+    ArrayInitialize(TakeProfits, 0);
+
+    SendTelegramMessage(TelegramApiUrl, TelegramBotToken, ChatId, message);
+}
+
+
 
 double GetRiskVolume(double risk, double loss){
 
@@ -578,6 +631,7 @@ double NormalizeVolume(double volume){
 
     return result; 
 }
+
 
 
 
