@@ -57,6 +57,8 @@ double SellEntryPrice = 0;
 
 string msg = "";
 
+double lastSentEntryPrice = 0.0;
+
 
 
 int OnInit()
@@ -526,7 +528,10 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
     return false;
    };
    #endif
-   
+
+
+    if (price != lastSentEntryPrice) {
+        lastSentEntryPrice = price;
     // Send Telegram message with trade details
     double equity = AccountInfoDouble(ACCOUNT_EQUITY);
     string tradeType = (type == ORDER_TYPE_BUY) ? "Buy" : "Sell";
@@ -535,6 +540,7 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
                      "\nTake Profit: " + DoubleToStr(tp, digits)+
                      "\nEquity " + DoubleToStr(equity, digits);
     SendTelegramMessage(TelegramApiUrl, TelegramBotToken, ChatId, message + "\n" + TimeToString( TimeLocal() ));
+    }
 
    return true;
 
