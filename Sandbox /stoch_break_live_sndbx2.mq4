@@ -528,10 +528,12 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
    #endif
    
     // Send Telegram message with trade details
+    double equity = AccountInfoDouble(ACCOUNT_EQUITY);
     string tradeType = (type == ORDER_TYPE_BUY) ? "Buy" : "Sell";
     string message = tradeType + " order executed @ " + DoubleToStr(price, digits) +
-                     "Stop Loss: " + DoubleToStr(sl, digits) +
-                     "\nTake Profit: " + DoubleToStr(tp, digits);
+                     "\nStop Loss: " + DoubleToStr(sl, digits) +
+                     "\nTake Profit: " + DoubleToStr(tp, digits)+
+                     "\nEquity " + DoubleToStr(equity, digits);
     SendTelegramMessage(TelegramApiUrl, TelegramBotToken, ChatId, message + "\n" + TimeToString( TimeLocal() ));
 
    return true;
