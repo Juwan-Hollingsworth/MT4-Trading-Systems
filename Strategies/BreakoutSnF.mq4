@@ -332,8 +332,10 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
     sl= NormalizeDouble(sl,digits);
     tp= NormalizeDouble(tp, digits);
 
-     // Calculate trade volume based on risk.
-    double volume = GetRiskVolume(Risk, MathAbs(price-sl));
+     // Calculate trade volume based on risk. (will incur larger loses based on account size - best to run with positive w/l ratio)
+    // double volume = GetRiskVolume(Risk, MathAbs(price-sl));
+
+    double volume = InpRiskPercent; //fixed vol or fixed lot size per trade like .5lots or 1.0 per trade placed
 
     //Place a trade MT4
     #ifdef __MQL4__
