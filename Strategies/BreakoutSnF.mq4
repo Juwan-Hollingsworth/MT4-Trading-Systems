@@ -34,6 +34,24 @@ RISK_TYPE_FIXED_LOTS, //fixed lots
 RISK_TYPE_EQUITY_PERCENT //equity percentage
 };
 
+struct STradeData{
+long ticket;
+double priceOpen;
+double takeProfit;
+
+STradeData(){
+    ticket=0;
+    priceOpen=0;
+    takeProfit=0;
+}
+
+void Init(){
+    ticket=PositionTicket();
+    priceOpen=PositionPriceOpen();
+    takeProfit=PositionTakeProfit();
+}
+};
+
 //+------------------------------------------------------------------+
 //| Inputs                                  |
 //+------------------------------------------------------------------+
@@ -56,6 +74,9 @@ input string InpTradeComment = "Breakout Snf Strategy"; //Trade comment
 input double InpRisk=1.0; //Risk Percentage per position
 input ENUM_RISK_TYPE InpRiskType = RISK_TYPE_FIXED_LOTS; //default type
 
+//Management
+input bool InpUseBreakEven = false; // Move to break even on first TP?
+
 
 //+------------------------------------------------------------------+
 //| Global Variables                                |
@@ -76,6 +97,13 @@ double BuyEntryPrice = 0;
 double SellEntryPrice = 0;
 
 bool Target1Hit = false;
+
+int PositionCount = 0;
+
+long Magic1 =0;
+long Magic2 =0;
+long Magic3 =0;
+
 
 
 ;
@@ -152,9 +180,9 @@ TakeProfit3 = PipsToDouble(InpTakeProfit3Pips);
 BuyEntryPrice = 0;
 SellEntryPrice = 0;
 
-#ifdef __MQL5__
-Trade.SetExpertMagicNumber(InpMagic);
-#endif
+// #ifdef __MQL5__
+// Trade.SetExpertMagicNumber(InpMagic);
+// #endif
 
 // Find the setup for the starting time range 
 datetime now = TimeCurrent(); 
@@ -162,6 +190,13 @@ EndTime= setNextTime(now+60, InpRangeEndHour, InpRangeEndMinute);
 StartTime = setPrevTime(EndTime, InpRangeStartHour, InpRangeStartMinute);
 InRange = (StartTime <= now && EndTime > now);
 
+Magic1 = InpMagic;
+Magic2 = InpMagic+1;
+Magic3 = InpMagic+1;
+
+//in case a trade closed while shut down
+PositionCount=0;
+UpdateBreakEven();
 
    return(INIT_SUCCEEDED);
   }
@@ -175,6 +210,11 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
   {
+    if (PositionCount != PositionsTotal()){
+          UpdateBreakEven();
+
+    };
+  
 // Main trading logic that executes on every tick.
 
 datetime now = TimeCurrent(); //get current server time
@@ -311,16 +351,16 @@ void OpenTrade(ENUM_ORDER_TYPE type, double price){
         sl = price + StopLoss; //sell
     };
      // If opening TP1 fails, do not attempt to place other trades. 
-    if(!OpenTrade(type, price, sl, TakeProfit1)) return;
-    if(!OpenTrade(type, price, sl, TakeProfit2))return;
-    if(!OpenTrade(type, price, sl, TakeProfit3)) return;
+    if(!OpenTrade(type, price, sl, TakeProfit1, Magic1)) return;
+    if(!OpenTrade(type, price, sl, TakeProfit2, Magic2))return;
+    if(!OpenTrade(type, price, sl, TakeProfit3, Magic3)) return;
 
 }
 
 //set trade size based on equity or risk
 
 
-bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit){
+bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit, long magic){
     // Open a trade with the specified type, price, stop loss, and take profit levels.
     if (takeProfit == 0) return true;
 
@@ -349,7 +389,7 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
 
     //Place a trade MT4
     #ifdef __MQL4__
-    int ticket = OrderSend(Symbol(), type, volume, price, 0, sl, tp, InpTradeComment, (int)InpMagic);
+    int ticket = OrderSend(Symbol(), type, volume, price, 0, sl, tp, InpTradeComment, (int)magic);
     //if order send fails ticket will = 0
     if (ticket <= 0){
          PrintFormat("Error opening trade, type=%s, volume=%f, price=%f, sl=%f, tp=%f", EnumToString(type), volume, price, sl, tp);
@@ -401,4 +441,15 @@ double NormalizeVolume(double volume){
     return result; 
 }
 
+void UpdateBreakEven(){
+    if (!InpUseBreakEven) return;
+};
+//__mt4___
+int PositionsTotal(){
+    return OrdersTotal();
+}
 
+long PositionTicket(){return OrderTicket();}
+double PositionPriceOpen(){return OrderOpenPrice();}
+double PositionTakeProfit(){return OrderTakeProfit();}
+  
