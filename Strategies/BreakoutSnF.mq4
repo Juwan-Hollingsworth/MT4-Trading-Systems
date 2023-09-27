@@ -341,10 +341,10 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
 
      double volume = 0;
      if (InpRiskType == RISK_TYPE_EQUITY_PERCENT){
-        volume = GetRiskVolume(Risk, MathAbs(price-sl));
+        volume = GetRiskVolume(InpRisk/100, MathAbs(price-sl));
      } else {
         volume = InpRisk;
-     }
+     };
 
 
     //Place a trade MT4
@@ -401,16 +401,4 @@ double NormalizeVolume(double volume){
     return result; 
 }
 
-void MoveSLToBreakEven(int ticket, double price, double sl, double tp, int digits){
-    if (type == ORDER_TYPE_BUY && takeProfit == TakeProfit1 && Target1Hit) {
-        // Modify stop loss to break even
-        double newSL = price;
-        newSL = NormalizeDouble(newSL, digits);
 
-        // Modify the stop loss for the trade
-        if (!Trade.PositionModify(ticket, price, newSL, tp)) {
-            Print("Error modifying stop loss to break even: ", GetLastError());
-        }
-    }
-
-}
