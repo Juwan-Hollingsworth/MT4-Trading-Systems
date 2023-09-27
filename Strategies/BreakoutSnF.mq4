@@ -34,6 +34,12 @@ RISK_TYPE_FIXED_LOTS, //fixed lots
 RISK_TYPE_EQUITY_PERCENT //equity percentage
 };
 
+enum ENUM_POSITION_TYPE 
+{
+POSITION_TYPE_BUY= ORDER_TYPE_BUY,
+POSITION_TYPE_SELL= ORDER_TYPE_SELL,
+};
+
 struct STradeData{
 long ticket;
 double priceOpen;
@@ -50,6 +56,16 @@ void Init(){
     priceOpen=PositionPriceOpen();
     takeProfit=PositionTakeProfit();
 }
+};
+
+struct SGroupData{
+datetime time;
+STradeData trades[3];
+
+SGroupData(){
+    time=0;
+}
+
 };
 
 //+------------------------------------------------------------------+
@@ -443,7 +459,35 @@ double NormalizeVolume(double volume){
 
 void UpdateBreakEven(){
     if (!InpUseBreakEven) return;
+
+    SGroupData groupList[];
+    int groupCount = LoadGroupData(groupList);
+
+    PositionCount=PositionsTotal();
 };
+
+int LoadGroupData (SGroupData &groupList[]){
+    int groupCount=0;
+    ArrayResize(groupList, 0);
+    for (int i=PositionsTotal()-1;i>=0;i--){
+        if (!PositionSelectByIndex(i)) continue;
+    }
+
+    return groupCount;
+}
+
+bool PositionSelectByIndex(int index){
+
+    if (!OrderSelect(index, SELECT_BY_POS, MODE_TRADES)) return false;
+    if (OrderSymbol() !=Symbol()) return false;
+    if (OrderMagicNumber()!=Magic1&& OrderMagicNumber() !=Magic2 && OrderMagicNumber() !=Magic3) return false;
+    if (OrderType() != ORDER_TYPE_BUY && OrderType() !=ORDER_TYPE_SELL) return false;
+    return true;
+
+
+
+}
+
 //__mt4___
 int PositionsTotal(){
     return OrdersTotal();
