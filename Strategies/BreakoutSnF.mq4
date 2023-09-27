@@ -134,7 +134,7 @@ if (InpTakeProfit3Pips < 0 ){
      inputsOK=false;
 }
 
-if (InpRiskPercent <= 0 ){
+if (InpRisk <= 0 ){
     Alert("risk must be greater than 0");
      inputsOK=false;
 }
