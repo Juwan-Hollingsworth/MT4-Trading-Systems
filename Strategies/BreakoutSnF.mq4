@@ -284,10 +284,10 @@ double PipsToDouble(string symbol, double pips){
 
 void SetTradeEntries(){
   // Set buy and sell entry prices based on the highest high and lowest low within the time range.
-    int startBar = iBarShift(Symbol(), PERIOD_M1, StartTime, false);
-    int endBar = iBarShift(Symbol(), PERIOD_M1, EndTime-60, false);
-    double high = iHigh(Symbol(), PERIOD_M1, iHighest(Symbol(),PERIOD_M1, MODE_HIGH, startBar-endBar+1, endBar));
-  double low = iLow(Symbol(), PERIOD_M1, iLowest(Symbol(),PERIOD_M1, MODE_LOW, startBar-endBar+1, endBar)); 
+    int startBar = iBarShift(Symbol(), Period(), StartTime, false);
+    int endBar = iBarShift(Symbol(), Period(), EndTime, false)+1;
+    double high = iHigh(Symbol(), Period(), iHighest(Symbol(),Period(), MODE_HIGH, startBar-endBar+1, endBar));
+  double low = iLow(Symbol(), Period(), iLowest(Symbol(),Period(), MODE_LOW, startBar-endBar+1, endBar)); 
   //Save the entry prices.
   BuyEntryPrice = high + RangeGap; //7 pips above high price of the rnage
   SellEntryPrice = low - RangeGap;
