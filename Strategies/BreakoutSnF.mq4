@@ -463,14 +463,47 @@ void UpdateBreakEven(){
     SGroupData groupList[];
     int groupCount = LoadGroupData(groupList);
 
+    for (int i = groupCount -1;i>=0;i--){
+        if(groupList[i].trades[0].ticket>0)continue;
+        if(groupList[i].trades[0].ticket>0)SetBreakEven(groupList[i].trades[1]);
+        if(groupList[i].trades[0].ticket>0)SetBreakEven(groupList[i].trades[1]);
+    }
+
     PositionCount=PositionsTotal();
 };
+
+void SetBreakEven(STradeData &trade){
+    bool success = OrderModify(trade.ticket, trade.priceOpen, trade.priceOpen, trade.takeProfit,0);
+}
 
 int LoadGroupData (SGroupData &groupList[]){
     int groupCount=0;
     ArrayResize(groupList, 0);
     for (int i=PositionsTotal()-1;i>=0;i--){
         if (!PositionSelectByIndex(i)) continue;
+        if(PositionStopLoss() == PositionPriceOpen()) continue; //already @ breakeven
+
+        int index = -1;
+        datetime timeOpen = PositionTimeOpen();
+        for(int j=0;j<groupCount; j++){
+            if(MathAbs(timeOpen-groupList[j].time) < 300){
+                index=j;
+                break;
+            }
+        }
+
+        //if nothing found add one to the end
+        if(index<0){
+            index = groupCount;
+            groupCount++;
+            ArrayResize(groupList, groupCount);
+            groupList[index].time=timeOpen;
+        }
+
+        if (PositionMagic() == Magic1) groupList[index].trades[0].Init();
+        if (PositionMagic() == Magic2) groupList[index].trades[1].Init();
+        if (PositionMagic() == Magic3) groupList[index].trades[2].Init();
+
     }
 
     return groupCount;
@@ -488,12 +521,14 @@ bool PositionSelectByIndex(int index){
 
 }
 
-//__mt4___
-int PositionsTotal(){
-    return OrdersTotal();
-}
 
-long PositionTicket(){return OrderTicket();}
-double PositionPriceOpen(){return OrderOpenPrice();}
-double PositionTakeProfit(){return OrderTakeProfit();}
-  
+
+//  mt4 for easier compatibility
+int      PositionsTotal() { return OrdersTotal(); }
+double   PositionStopLoss() { return OrderStopLoss(); }
+double   PositionPriceOpen() { return OrderOpenPrice(); }
+int      PositionTicket() { return OrderTicket(); }
+datetime PositionTimeOpen() { return OrderOpenTime(); }
+double   PositionTakeProfit() { return OrderTakeProfit(); }
+int      PositionType() { return OrderType(); }
+long     PositionMagic() { return OrderMagicNumber(); }
