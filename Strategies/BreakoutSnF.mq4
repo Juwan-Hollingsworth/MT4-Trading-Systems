@@ -28,6 +28,12 @@ CTrade Trade;
 CPositionInfo PositionInfo;
 #endif
 
+enum ENUM_RISK_TYPE 
+{
+RISK_TYPE_FIXED_LOTS, //fixed lots
+RISK_TYPE_EQUITY_PERCENT //equity percentage
+};
+
 //+------------------------------------------------------------------+
 //| Inputs                                  |
 //+------------------------------------------------------------------+
@@ -47,7 +53,8 @@ input double InpTakeProfit3Pips = 50.0;   // Take profit 3 in pips
 // Standard Features
 input long InpMagic= 232323; //Magic number
 input string InpTradeComment = "Breakout Snf Strategy"; //Trade comment
-input double InpRiskPercent=1.0; //Risk Percentage per position
+input double InpRisk=1.0; //Risk Percentage per position
+input ENUM_RISK_TYPE InpRiskType = RISK_TYPE_FIXED_LOTS; //default type
 
 
 //+------------------------------------------------------------------+
@@ -59,7 +66,7 @@ double StopLoss= 0;
 double TakeProfit1 = 0;
 double TakeProfit2 = 0;
 double TakeProfit3 = 0;
-double Risk = 0;
+
 
 datetime StartTime=0;
 datetime EndTime= 0;
@@ -135,7 +142,7 @@ if (InpRiskPercent <= 0 ){
 if (!inputsOK) return INIT_PARAMETERS_INCORRECT;
 
 //Calc risk settings & intialize other vairables.
-Risk           = InpRiskPercent / 100;
+
 RangeGap = PipsToDouble(InpRangeGapPips);
 StopLoss = PipsToDouble(InpStopLossPips);
 TakeProfit1 = PipsToDouble(InpTakeProfit1Pips);
@@ -332,10 +339,13 @@ bool OpenTrade(ENUM_ORDER_TYPE type, double price, double sl , double takeProfit
     sl= NormalizeDouble(sl,digits);
     tp= NormalizeDouble(tp, digits);
 
-     // Calculate trade volume based on risk. (will incur larger loses based on account size - best to run with positive w/l ratio)
-    // double volume = GetRiskVolume(Risk, MathAbs(price-sl));
+     double volume = 0;
+     if (InpRiskType == RISK_TYPE_EQUITY_PERCENT){
+        volume = GetRiskVolume(Risk, MathAbs(price-sl));
+     } else {
+        volume = InpRisk;
+     }
 
-    double volume = InpRiskPercent; //fixed vol or fixed lot size per trade like .5lots or 1.0 per trade placed
 
     //Place a trade MT4
     #ifdef __MQL4__
