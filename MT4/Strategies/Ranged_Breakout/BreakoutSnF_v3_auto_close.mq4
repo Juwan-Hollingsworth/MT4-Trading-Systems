@@ -220,7 +220,14 @@ int OnInit()
     //| Expert deinitialization function                                 |
     //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
-    {}
+    {
+        
+        if (eaDisabled)
+   {
+      ExpertRemove(); // Remove the EA
+   }
+
+    }
     //+------------------------------------------------------------------+
     //| Expert tick function                                             |
     //+------------------------------------------------------------------+
@@ -235,7 +242,7 @@ void OnTick()
         double maxLossPercentage = originalBalance*0.30;
         //check if the loss percentage exceeds max allowable loss
         if (currentEquity is >= maxLossPercentage){
-            disableEA()
+            disableEA("Exceeded the maximum allowable loss percentage.");
         }
 
         
@@ -306,12 +313,14 @@ void OnTick()
     //| functions                                           |
     //+------------------------------------------------------------------+
 
-void disableEA(){
+void disableEA(string reason){
 
     //disable EA from taking trades 
     //TODO move to the deinit function and give reason as comment
-    // "Max loss percentage reached"
-     stop/=0;
+    // "Max loss percentage reached"   
+   eaDisabled = true;
+   disabledReason = reason;
+
 }
 
 datetime setNextTime(datetime now, int hour, int minute){
